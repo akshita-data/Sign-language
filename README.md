@@ -8,6 +8,7 @@ Computer Vision and Machine Learning.
 - Camera Integration ✅
 - Hand Detection ✅
 - 21 Landmark Tracking ✅
+- Dataset Handbook ✅
 - Landmark Extraction ⏳
 - Dataset Collection ⏳
 - Model Training ⏳
