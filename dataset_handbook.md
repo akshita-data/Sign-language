@@ -41,7 +41,7 @@ Examples:
 - HELLO_M4_042.mp4     (Linux)
 - STOP_M5_100.mp4      (Mac)
 
----
+-----
 
 ## 3. Vocabulary Nature & Structural Protocol OR Kinetic Gesture
 - HELLO     -> DYNAMIC (Moving hand gesture)
