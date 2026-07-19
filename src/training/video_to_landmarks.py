@@ -1,18 +1,16 @@
 from pathlib import Path
 import cv2
 import mediapipe as mp
+import pandas as pd
 
 # =====================================================
 # PROJECT PATHS
 # =====================================================
 
-# Locate the root directory of the project
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-# Path to raw videos
 RAW_VIDEO_PATH = PROJECT_ROOT / "dataset" / "raw_videos"
 
-# Path where landmark CSVs will be stored
 LANDMARK_PATH = PROJECT_ROOT / "dataset" / "landmarks"
 
 # =====================================================
@@ -66,71 +64,85 @@ hands = mp_hands.Hands(
 )
 
 # =====================================================
-# PROCESS VIDEOS
+# PROCESS ALL SIGN FOLDERS
 # =====================================================
 
 for sign_folder in sign_folders:
 
-    print(f"\n========== {sign_folder.name} ==========")
+    print(f"\nProcessing sign: {sign_folder.name}")
+    output_sign_folder = LANDMARK_PATH / sign_folder.name
+    output_sign_folder.mkdir(parents=True, exist_ok=True)
 
     videos = sorted(sign_folder.glob("*.mp4"))
 
     if not videos:
-        print("No videos found.")
         continue
 
-    print(f"Found {len(videos)} videos.")
+    # Process every video in this sign folder
+    for video_path in videos:
 
-    # -------------------------------------------------
-    # For testing, process only the first video
-    # -------------------------------------------------
+        cap = cv2.VideoCapture(str(video_path))
 
-    video_path = videos[0]
+        if not cap.isOpened():
+            print(f"Could not open: {video_path.name}")
+            continue
 
-    print(f"\nOpening: {video_path.name}")
+        video_landmarks = []
 
-    cap = cv2.VideoCapture(str(video_path))
+        while True:
 
-    if not cap.isOpened():
-        print("Could not open video.")
-        continue
+            success, frame = cap.read()
 
-    frame_count = 0
-    hand_detected_frames = 0
+            if not success:
+                break
 
-    while True:
+            # Convert BGR to RGB
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        success, frame = cap.read()
+            # Detect hand
+            results = hands.process(rgb_frame)
 
-        if not success:
-            break
+            # =====================================================
+            # LANDMARK EXTRACTION WILL BE ADDED HERE
+            # =====================================================
 
-        frame_count += 1
+            if results.multi_hand_landmarks:
 
-        # Convert BGR to RGB
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                for hand_landmarks in results.multi_hand_landmarks:
 
-        # Process frame using MediaPipe
-        results = hands.process(rgb_frame)
+                    frame_data = []
 
-        if results.multi_hand_landmarks:
-            hand_detected_frames += 1
-            print(f"Frame {frame_count}: Hand detected")
-        else:
-            print(f"Frame {frame_count}: No hand detected")
+                    for landmark in hand_landmarks.landmark:
 
-    cap.release()
+                        frame_data.append(landmark.x)
+                        frame_data.append(landmark.y)
+                        frame_data.append(landmark.z)
 
-    print("\n========== SUMMARY ==========")
-    print(f"Total Frames          : {frame_count}")
-    print(f"Frames with Hand      : {hand_detected_frames}")
-    print(f"Frames without Hand   : {frame_count - hand_detected_frames}")
+        # Temporary check
+                    video_landmarks.append(frame_data)
 
-    # Stop after the first sign folder while testing
-    break
+        cap.release()
+        if video_landmarks:
+
+            columns = []
+
+            for i in range(21):
+                columns.extend([f"x{i}", f"y{i}", f"z{i}"])
+
+            df = pd.DataFrame(video_landmarks, columns=columns)
+
+            output_csv = output_sign_folder / f"{video_path.stem}.csv"
+
+            df.to_csv(output_csv, index=False)
+
+            print(f"Saved: {output_csv.name}")
+
+print("\nAll videos processed successfully.")
 
 # =====================================================
 # CLEANUP
 # =====================================================
 
 hands.close()
+
+print("\n========== PROCESS COMPLETE ==========")
