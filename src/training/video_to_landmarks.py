@@ -110,15 +110,28 @@ for sign_folder in sign_folders:
 
                 for hand_landmarks in results.multi_hand_landmarks:
 
+                    # Get wrist landmark (landmark 0)
+                    wrist = hand_landmarks.landmark[0]
+
+                    wrist_x = wrist.x
+                    wrist_y = wrist.y
+                    wrist_z = wrist.z
+
                     frame_data = []
 
                     for landmark in hand_landmarks.landmark:
 
-                        frame_data.append(landmark.x)
-                        frame_data.append(landmark.y)
-                        frame_data.append(landmark.z)
+                        # Coordinates relative to the wrist
+                        relative_x = landmark.x - wrist_x
+                        relative_y = landmark.y - wrist_y
+                        relative_z = landmark.z - wrist_z
 
-        # Temporary check
+                        frame_data.extend([
+                            relative_x,
+                            relative_y,
+                            relative_z
+                        ])
+
                     video_landmarks.append(frame_data)
 
         cap.release()
