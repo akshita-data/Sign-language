@@ -11,7 +11,9 @@ from keras.layers import (
     Masking,
     LSTM,
     Dense,
-    Dropout
+    Dropout,
+    Bidirectional,
+    BatchNormalization
 )
 from keras.callbacks import (
     EarlyStopping,
@@ -89,27 +91,34 @@ model = Sequential()
 
 model.add(Input(shape=(60, 63)))
 
-# Ignore padded frames
 model.add(Masking(mask_value=0.0))
 
 model.add(
-    LSTM(
-        64,
-        return_sequences=True
+    Bidirectional(
+        LSTM(
+            64,
+            return_sequences=True
+        )
     )
 )
 
+model.add(BatchNormalization())
 model.add(Dropout(0.3))
 
 model.add(
-    LSTM(
-        32
+    Bidirectional(
+        LSTM(
+            32
+        )
     )
 )
 
-model.add(Dense(32, activation="relu"))
-
+model.add(BatchNormalization())
 model.add(Dropout(0.3))
+
+model.add(Dense(64, activation="relu"))
+
+model.add(Dropout(0.4))
 
 model.add(
     Dense(
