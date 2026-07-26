@@ -1,55 +1,57 @@
-import cv2
-import mediapipe as mp
+"""
+landmark_extraction.py
 
-# MediaPipe setup
-mp_hands = mp.solutions.hands
-mp_draw = mp.solutions.drawing_utils
+Extracts hand landmarks from MediaPipe results.
+Returns a list of 63 values (21 landmarks × x, y, z).
+"""
 
-hands = mp_hands.Hands(
-    static_image_mode=False,
-    max_num_hands=2,
-    min_detection_confidence=0.5,
-    min_tracking_confidence=0.5
-)
+from typing import Optional
 
-# Webcam
-cap = cv2.VideoCapture(0)
 
-while True:
-    success, frame = cap.read()
+def extract_landmarks(results) -> Optional[list]:
+    """
+    Extract hand landmarks from MediaPipe results.
 
-    if not success:
-        break
+    Parameters
+    ----------
+    results : mediapipe.python.solutions.hands.Hands.process
+        Output from MediaPipe Hands.
 
-    # BGR -> RGB
-    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    Returns
+    -------
+    list
+        63 landmark values [x0, y0, z0, ..., x20, y20, z20]
 
-    # Hand detection
-    results = hands.process(rgb_frame)
+    None
+        If no hand is detected.
+    """
 
-    if results.multi_hand_landmarks:
-        for hand_landmarks in results.multi_hand_landmarks:
+    # No hand detected
+    if not results.multi_hand_landmarks:
+        return None
 
-            # Draw landmarks and connections
-            mp_draw.draw_landmarks(
-                frame,
-                hand_landmarks,
-                mp_hands.HAND_CONNECTIONS
-            )
+    # Use the first detected hand
+    hand_landmarks = results.multi_hand_landmarks[0]
 
-            # Extract landmarks
-            landmarks = []
+    # Get wrist landmark
+    wrist = hand_landmarks.landmark[0]
 
-            for lm in hand_landmarks.landmark:
-                landmarks.extend([lm.x, lm.y, lm.z])
+    wrist_x = wrist.x
+    wrist_y = wrist.y
+    wrist_z = wrist.z
 
-            print("Total Values:", len(landmarks))
-            print(landmarks)
+    landmarks = []
 
-    cv2.imshow("Landmark Extraction", frame)
+    for landmark in hand_landmarks.landmark:
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+        relative_x = landmark.x - wrist_x
+        relative_y = landmark.y - wrist_y
+        relative_z = landmark.z - wrist_z
 
-cap.release()
-cv2.destroyAllWindows()
+        landmarks.extend([
+            relative_x,
+            relative_y,
+            relative_z
+        ])
+
+    return landmarks
